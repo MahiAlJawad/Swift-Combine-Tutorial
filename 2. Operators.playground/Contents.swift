@@ -296,3 +296,50 @@ publisher2.send(2)
 // false
 
 */
+
+/*
+ // handleEvents and print operators for debugging
+ 
+ let cancellable = [1, 2, 3, 4, 5].publisher.print().sink { _ in }
+ 
+ //Output:
+ //receive value: (1)
+ //receive value: (2)
+ //receive value: (3)
+ //receive value: (4)
+ //receive value: (5)
+ //receive finished
+ 
+ */
+
+/*
+ let cancellable = [1, 2, 3, 4, 5].publisher
+ .handleEvents(
+ receiveSubscription: { _ in print("Received subscription") },
+ receiveOutput: { _ in print("Recieved output") }
+ ).sink { _ in }
+ 
+ // There are many other event handlers also in a publisher
+ 
+ cancellable.cancel()
+ 
+ // Output:
+ // Received subscription
+ // Recieved output
+ // Recieved output
+ // Recieved output
+ // Recieved output
+ // Recieved output
+ 
+ */
+
+/*
+// breakpoint operator for debugging
+
+[1, 2, 3, 4, 5].publisher
+    .breakpoint(receiveOutput: { $0 > 4 })
+    .sink { print($0) }
+
+// A breakpoint will be started when any condition given is satisfied
+
+*/
