@@ -1,5 +1,5 @@
 import UIKit
-
+import Combine
 
 //-------- Example with Notification Center's default publisher --------//
 
@@ -113,8 +113,7 @@ let passthroughSubject = PassthroughSubject<Int, Never>()
 
 // Works as Publisher
 passthroughSubject.subscribe(CustomSubscriber())
-
-// Works as Subscriber
+ 
 passthroughSubject.send(1)
 passthroughSubject.send(2)
 
@@ -138,5 +137,25 @@ passthroughSubject.send(4)
 //Received from Sink: 3
 //Received: 3
 //Received: 4
+
+*/
+
+//-------- CurrentValueSubject --------//
+
+// CurrentValueSubject can just hold a value, its other functionalities are same as PassthroughSubject
+
+/*
+let currentValueSubject = CurrentValueSubject<Int, Never>(5)
+
+currentValueSubject.sink { print($0) }
+
+currentValueSubject.send(6)
+
+currentValueSubject.value = 7
+
+//Output:
+//5
+//6
+//7
 
 */
