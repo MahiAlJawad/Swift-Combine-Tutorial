@@ -343,3 +343,6 @@ publisher2.send(2)
 // A breakpoint will be started when any condition given is satisfied
 
 */
+
+// debounce
+// Check detail example: https://developer.apple.com/documentation/combine/fail/debounce(for:scheduler:options:)
