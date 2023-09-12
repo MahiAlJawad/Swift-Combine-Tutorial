@@ -344,5 +344,6 @@ publisher2.send(2)
 
 */
 
-// debounce
-// Check detail example: https://developer.apple.com/documentation/combine/fail/debounce(for:scheduler:options:)
+// debounce: waits specified time AFTER getting an event and publishes the latest value when the waiting period completes. Check detail example: https://developer.apple.com/documentation/combine/fail/debounce(for:scheduler:options:)
+
+// throttle: takes the first event. Then waits specified period and takes only the latest value. Detail: https://developer.apple.com/documentation/combine/fail/throttle(for:scheduler:latest:)
