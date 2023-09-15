@@ -87,6 +87,28 @@ publisher
 //[1, 2, 3]
 //[1, 2, 3, 4]
 //[1, 2, 3, 4, 5]
+ 
+ // Scan another example
+ let subject = PassthroughSubject<[Int], Never>()
+
+ let cancellable = subject
+     .scan([]) { result, value in
+         return result + [value]
+     }
+     .sink { print($0) }
+
+ subject.send([1, 2])
+
+ DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+     subject.send([5, 6])
+ }
+
+
+ //Output:
+ //[[1, 2]]
+ //[[1, 2], [5, 6]] // Comes after 1 seconds
+
+ // Note: The speciality of scan() operator is you can get all the previous output and the new output together
 */
 
 /*
