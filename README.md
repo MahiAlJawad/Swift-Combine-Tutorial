@@ -1,5 +1,7 @@
 # Swift-Combine-Tutorial
 
+**NB.** _Explanations are not well documented. Reader needs to understand or infer what's going on from the Output and code itself. Codes are almost self-explanatory_
+
 ## 1. Introductory Basics
 
 ### Example with Notification Center's default publisher
