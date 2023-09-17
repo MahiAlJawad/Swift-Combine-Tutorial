@@ -534,3 +534,105 @@ waits specified time AFTER getting an event and publishes the latest value when 
 
 ### throttle
 takes the first event. Then waits specified period and takes only the latest value. Detail: https://developer.apple.com/documentation/combine/fail/throttle(for:scheduler:latest:)
+
+
+## 3. Networking with Combine
+
+In this example, we are going to fetch posts (i.e. [Post]) using a free API and assign to a property `post` in our `PostViewController`.
+
+```swift
+struct Post: Codable {
+    let title: String
+    let body: String
+}
+
+class Downloader {
+    static func getPosts() -> AnyPublisher<[Post], Error> {
+        guard let url = URL(string: "https://jsonplaceholder.typicode.com/posts") else {
+            fatalError("Invalid url")
+        }
+        
+        return URLSession.shared.dataTaskPublisher(for: url)
+            .map(\.data)
+            .decode(type: [Post].self, decoder: JSONDecoder())
+            .eraseToAnyPublisher()
+    }
+}
+
+class PostViewController: UIViewController {
+    var posts: [Post] = [] {
+        didSet {
+            print("New value assigned, post count: \(posts.count)")
+        }
+    }
+    private var cancellable: AnyCancellable?
+    
+    override func viewDidLoad() {
+        cancellable = Downloader.getPosts()
+            .catch { error in
+                print(error)
+                return Just([Post]())
+            }
+            .assign(to: \.posts, on: self)
+    }
+}
+```
+
+Now we are heading over a difficult example. Let's consider we have an API url that provides `News` data if you request with `newsID`.
+
+We have the following challenges:
+* Create an API that provides a publisher of `News` given the `newsID`
+* Create an API that provides a publisher of all news given multiple `newsIDs`
+* Create an API that provides a publisher of `[News]` given the multiple newsIDs using the previous API we just created
+
+This example can be run and tested in swift playground
+
+```swift
+import Foundation
+import Combine
+
+struct News: Codable {
+    let id: Int
+    let title: String
+}
+
+func getNews(by newsID: Int) -> AnyPublisher<News, Error> {
+    guard let url = URL(string: "https://hacker-news.firebaseio.com/v0/item/\(newsID).json?print=pretty") else {
+        return Fail(error: NSError(domain: "Wrong url", code: 401)).eraseToAnyPublisher()
+    }
+    
+    return URLSession.shared.dataTaskPublisher(for: url)
+        .receive(on: RunLoop.main)
+        .map(\.data)
+        .decode(type: News.self, decoder: JSONDecoder())
+        .eraseToAnyPublisher()
+}
+
+func getAllNewsPublisher(with newsIDs: [Int]) -> AnyPublisher<News, Error> {
+    let initialPublisher = getNews(by: newsIDs[0])
+    
+    return newsIDs.dropFirst() // as we took the first publisher already
+        .reduce(initialPublisher) { partialResult, newsID in
+            let newsPublisher = getNews(by: newsID)
+            return partialResult
+                .merge(with: newsPublisher)
+                .eraseToAnyPublisher()
+        }
+}
+
+func getNewsListPublisher(with newsIDs: [Int]) -> AnyPublisher<[News], Error> {
+    getAllNewsPublisher(with: newsIDs)
+        .scan([]) { result, news in
+            return result + [news]
+        }
+        .eraseToAnyPublisher()
+}
+
+let newsIDsToFetch = [9129911, 9129199, 9127761, 9128141, 9128264, 9127792, 9129248, 9127092, 9128367]
+
+
+let cancellable = getNewsListPublisher(with: newsIDsToFetch)
+    .catch { _ in Empty() }
+    .sink { print("News count: \($0.count)") }
+
+```
