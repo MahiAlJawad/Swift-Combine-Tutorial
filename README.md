@@ -269,13 +269,13 @@ publisher
  // Note: The speciality of scan() operator is you can get all the previous output and the new output together
 ```
 
-### ReplaceNil() 
+### removeDuplicates() 
 
 ```swift
 // removeDuplicates() basically works as skipRepeats
  [1, 1, 2, 3, 1, 4, 5].publisher
- .removeDuplicates()
- .sink { print($0) }
+     .removeDuplicates()
+     .sink { print($0) }
  
  
  Output:
@@ -286,3 +286,251 @@ publisher
  //4
  //5
 ```
+
+### ignoreOutput()
+
+```swift
+// ignoreOutput()- ignores outputs, just shows completion (why on earth somebody will need it :p)
+[1, 1, 2, 3, 1, 4, 5].publisher
+    .ignoreOutput()
+    .sink(
+        receiveCompletion: { print("Completed: \($0)")},
+        receiveValue: { print($0) }
+    )
+//Output:
+//Completed: finished
+```
+
+### dropFirst()
+```swift
+// dropFirst
+[1, 1, 2, 3, 1, 4, 5].publisher
+    .dropFirst(2)
+    .sink { print($0) }
+
+//Output:
+//2
+//3
+//1
+//4
+//5
+ 
+ // Note: dropWhile is a similar operator drops values when condition meets
+```
+
+### drop(untilOutputFrom: Publisher)
+
+```swift
+// drop(untilOutputFrom: Publisher)
+
+let taps = PassthroughSubject<Void, Never>()
+
+let passthroughSubject = PassthroughSubject<Int, Never>()
+
+passthroughSubject
+    .drop(untilOutputFrom: taps)
+    .sink { print($0) }
+
+passthroughSubject.send(1) // will be dropped
+
+taps.send() // now the passthroughSubject values will be sinked
+
+passthroughSubject.send(2)
+
+//Output:
+//2
+```
+
+### prefix()
+
+```swift
+ // prefix()
+ 
+ [1, 1, 2, 3, 1, 4, 5].publisher
+     .prefix(3)
+     .sink { print($0) }
+ 
+ //Output:
+ //1
+ //1
+ //2
+```
+### prefix(while: () -> Bool)
+```swift
+// prefix(while: )
+[1, 1, 2, 3, 1, 4, 5].publisher
+    .prefix(while: { $0 < 4 }) // it will pass all values until it meets the condition, once condition met, it will not pass any more values
+    .sink { print($0) }
+//Output:
+//1
+//1
+//2
+//3
+//1
+```
+
+### prepend()
+```swift
+// prepend(): attaches before the sequence
+
+[1, 1, 2, 3, 1, 4, 5]
+    .publisher
+    .prepend([10, 11])
+    .collect() // just to avoid new lines in the output :p
+    .sink { print($0) }
+
+//Output:
+//[10, 11, 1, 1, 2, 3, 1, 4, 5]
+ 
+ // Note: Similarly append() operator attaches elements at the end
+```
+
+### switchToLatest()
+
+```swift
+// switchToLatest()
+ 
+ let publisher1 = PassthroughSubject<Int, Never>()
+ let publisher2 = PassthroughSubject<Int, Never>()
+ 
+ let publishers = PassthroughSubject<PassthroughSubject<Int, Never>, Never>()
+ 
+ publishers
+     .switchToLatest() // Will always sink the vlaues of the latest PassthroughSubject hooked to it
+     .sink { print($0) }
+ 
+ publishers.send(publisher1) // Hooked with publisher1
+ 
+ publisher1.send(1) // will be sinked
+ 
+ publishers.send(publisher2) // Now hooked with publisher2
+ 
+ publisher2.send(2) // Will be sinked
+ 
+ publisher1.send(3) // Will be ignored as the `publishers` is now hooked with publisher2
+ 
+ //Output:
+ //1
+ //2
+```
+### switchToLatest example with Future<>
+
+```swift
+var index = 0
+func getImageID() -> AnyPublisher<Int, Never> {
+    Future<Int, Never> { result in // Future is used for async result production
+        // Let's say our task takes 3 second to complete
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+            result(.success(index))
+        }
+    }
+    .map { $0 } // Receives the result from Future and makes Publisher
+    .eraseToAnyPublisher() // Converts to AnyPublisher
+}
+
+let taps = PassthroughSubject<Void, Never>()
+
+let cancellable = taps
+    .map { _ in getImageID() } // In each tap we request imageID
+    .switchToLatest() // We only care about latest request result
+    .sink { print("Recieved imageID: \($0)") }
+
+taps.send() // Immediately gets 1 after 3 sec
+// requests again in 4 sec, i.e. 1 sec after the first result
+DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
+    index += 1
+    taps.send()
+}
+
+// requests again in 4.5 sec. i.e. 0.5 sec after the second request
+// So the second request is ignored in switchToLatest
+DispatchQueue.main.asyncAfter(deadline: .now() + 4.5) {
+    index += 1
+    taps.send()
+}
+
+//Output:
+//Recieved imageID: 0
+//Recieved imageID: 2
+```
+
+### merge()
+```swift
+let publisher1 = PassthroughSubject<Int, Never>()
+let publisher2 = PassthroughSubject<Int, Never>()
+
+publisher1.merge(with: publisher2).sink { print($0) }
+
+publisher1.send(1)
+publisher2.send(2)
+
+//Output:
+//1
+//2
+```
+
+### allSatisfy
+```swift
+[1, 2, 3, 4, 5].publisher
+    .allSatisfy { $0 % 2 == 0 }
+    .sink { isAllEven in
+        print(isAllEven)
+    }
+
+// Output:
+// false
+
+```
+
+ ### handleEvents and print operators for debugging
+
+ ```swift
+ let cancellable = [1, 2, 3, 4, 5].publisher
+    .print()
+    .sink { _ in } // Not printing anything from sink()
+ 
+ //Output:
+ //receive value: (1)
+ //receive value: (2)
+ //receive value: (3)
+ //receive value: (4)
+ //receive value: (5)
+ //receive finished
+ 
+ ```
+
+```swift
+ let cancellable = [1, 2, 3, 4, 5].publisher
+     .handleEvents(
+         receiveSubscription: { _ in print("Received subscription") },
+         receiveOutput: { _ in print("Recieved output") }
+     ).sink { _ in }
+ 
+ // There are many other event handlers also in a publisher
+ 
+ cancellable.cancel()
+ 
+ // Output:
+ // Received subscription
+ // Recieved output
+ // Recieved output
+ // Recieved output
+ // Recieved output
+ // Recieved output
+ 
+ ```
+
+### breakpoint operator for debugging
+```swift
+[1, 2, 3, 4, 5].publisher
+    .breakpoint(receiveOutput: { $0 > 4 })
+    .sink { print($0) }
+
+// A breakpoint will be started when any condition given is satisfied
+```
+
+### debounce
+waits specified time AFTER getting an event and publishes the latest value when the waiting period completes. Check detail example: https://developer.apple.com/documentation/combine/fail/debounce(for:scheduler:options:)
+
+### throttle
+takes the first event. Then waits specified period and takes only the latest value. Detail: https://developer.apple.com/documentation/combine/fail/throttle(for:scheduler:latest:)
