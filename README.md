@@ -638,3 +638,14 @@ let cancellable = getNewsListPublisher(with: newsIDsToFetch)
     .sink { print("News count: \($0.count)") }
 
 ```
+
+### Combine with SwiftUI
+
+This repo does not cover Cobine in SwiftUI.
+
+The below topics are suggested to learn and understand for Combine in SwiftUI:
+
+* @State, @Binding
+* ObservableObject protocol: use of @ObservedObject and @Published
+* When to use @EnvironmentObject in place of @ObservedObject
+* When to use @StateObject
